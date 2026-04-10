@@ -61,6 +61,75 @@ type DisplayCategory = {
   catIds: string[]
 }
 
+// ── Category Placeholder Icons ──────────────────────────────────────
+
+type PlaceholderStyle = { bg: string; icon: React.ReactNode }
+
+const PLACEHOLDER_STYLES: Record<string, PlaceholderStyle> = {
+  cocktail: {
+    bg: 'from-rose-50 to-orange-50',
+    icon: <path d="M12 3L14 9H20L15 13L17 19L12 15L7 19L9 13L4 9H10L12 3Z" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  fish: {
+    bg: 'from-cyan-50 to-blue-50',
+    icon: <path d="M20 12C20 12 17 8 12 8C7 8 4 12 4 12C4 12 7 16 12 16C17 16 20 12 20 12ZM2 12L4.5 9.5M2 12L4.5 14.5M22 12L19.5 9.5M22 12L19.5 14.5" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  shrimp: {
+    bg: 'from-orange-50 to-rose-50',
+    icon: <path d="M19 8C19 8 17 4 12 4C8 4 6 7 6 10C6 13 8 15 10 16L7 20M19 8C17 10 15 11 12 11M19 8L21 6" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  snack: {
+    bg: 'from-amber-50 to-yellow-50',
+    icon: <><circle cx="12" cy="12" r="3" /><path d="M12 5V3M12 21V19M5 12H3M21 12H19M7.05 7.05L5.636 5.636M18.364 18.364L16.95 16.95M7.05 16.95L5.636 18.364M18.364 5.636L16.95 7.05" strokeLinecap="round" /></>,
+  },
+  taco: {
+    bg: 'from-lime-50 to-emerald-50',
+    icon: <path d="M4 16C4 16 4 8 12 8C20 8 20 16 20 16M4 16H20M4 16C4 18 6 19 8 19M20 16C20 18 18 19 16 19" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  drink: {
+    bg: 'from-sky-50 to-indigo-50',
+    icon: <path d="M8 2H16L14 22H10L8 2ZM7 6H17M9 12H15" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  dessert: {
+    bg: 'from-pink-50 to-fuchsia-50',
+    icon: <path d="M12 4C8 4 5 7 5 10H19C19 7 16 4 12 4ZM5 10L6 20H18L19 10M12 4V2M9 14V17M15 14V17" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  seafood: {
+    bg: 'from-teal-50 to-cyan-50',
+    icon: <path d="M3 12C5 8 9 6 12 6C15 6 19 8 21 12M3 12C5 16 9 18 12 18C15 18 19 16 21 12M3 12H21M7 9C7 9 9 12 12 12C15 12 17 9 17 9" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+}
+
+// Map DB category names to placeholder styles
+const CATEGORY_PLACEHOLDER_MAP: Record<string, string> = {
+  'Cócteles': 'cocktail',
+  'Ensaladas': 'snack',
+  'Filetes': 'fish',
+  'Camarones': 'shrimp',
+  'Antojitos y Botanas': 'snack',
+  'Pescados Enteros': 'fish',
+  'Más del Mar': 'seafood',
+  'Tacos y Quesadillas': 'taco',
+  'Bebidas': 'drink',
+  'Postres': 'dessert',
+}
+
+function getPlaceholderStyle(categoryName: string): PlaceholderStyle {
+  const key = CATEGORY_PLACEHOLDER_MAP[categoryName] || 'seafood'
+  return PLACEHOLDER_STYLES[key]
+}
+
+function PlaceholderThumb({ categoryName }: { categoryName: string }) {
+  const style = getPlaceholderStyle(categoryName)
+  return (
+    <div className={`w-full h-full bg-gradient-to-br ${style.bg} flex items-center justify-center`}>
+      <svg className="w-8 h-8 text-timon-navy/15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        {style.icon}
+      </svg>
+    </div>
+  )
+}
+
 // ── Skeleton Loading ────────────────────────────────────────────────
 
 function SkeletonCard() {
@@ -359,22 +428,24 @@ export default function MenuPage() {
                         return (
                           <div
                             key={item.id}
-                            className={`animate-fade-in bg-white rounded-xl border border-timon-navy/5 hover:border-timon-teal/20 hover:shadow-sm transition-all duration-200 overflow-hidden ${hasImage ? 'flex' : 'p-4 sm:p-5'}`}
+                            className="animate-fade-in bg-white rounded-xl border border-timon-navy/5 hover:border-timon-teal/20 hover:shadow-sm transition-all duration-200 overflow-hidden flex"
                             style={{ animationDelay: `${index * 40}ms` }}
                           >
-                            {/* Image thumbnail */}
-                            {hasImage && (
-                              <div className="w-24 sm:w-28 flex-shrink-0">
+                            {/* Thumbnail: real image or category placeholder */}
+                            <div className="w-20 sm:w-24 flex-shrink-0">
+                              {hasImage ? (
                                 <img
                                   src={item.image_url}
                                   alt={item.name}
                                   className="w-full h-full object-cover"
                                   loading="lazy"
                                 />
-                              </div>
-                            )}
+                              ) : (
+                                <PlaceholderThumb categoryName={cat.name} />
+                              )}
+                            </div>
                             {/* Content */}
-                            <div className={hasImage ? 'flex-1 p-3 sm:p-4 min-w-0' : ''}>
+                            <div className="flex-1 p-3 sm:p-4 min-w-0">
                               {badge && <div className="mb-1.5"><Badge type={badge} /></div>}
                               <div className="flex items-start justify-between gap-2">
                                 <h3 className="font-heading font-semibold text-timon-navy text-[15px] sm:text-base leading-snug">{item.name}</h3>
