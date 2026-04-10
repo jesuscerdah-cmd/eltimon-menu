@@ -12,6 +12,11 @@
   --timon-gray: #6B7280;
   --background: #FDFAF5;
   --foreground: #1E3A5F;
+  /* Legacy aliases for admin panel compatibility */
+  --timon-red: #2A9D8F;
+  --timon-red-dark: #238B7E;
+  --timon-dark: #1E3A5F;
+  --timon-cream: #FDFAF5;
 }
 
 @theme inline {

@@ -355,20 +355,35 @@ export default function MenuPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {catItems.map((item, index) => {
                         const badge = getBadge(item.name)
+                        const hasImage = item.image_url && item.image_url.length > 0
                         return (
                           <div
                             key={item.id}
-                            className="animate-fade-in bg-white rounded-xl border border-timon-navy/5 p-4 sm:p-5 hover:border-timon-teal/20 hover:shadow-sm transition-all duration-200"
+                            className={`animate-fade-in bg-white rounded-xl border border-timon-navy/5 hover:border-timon-teal/20 hover:shadow-sm transition-all duration-200 overflow-hidden ${hasImage ? 'flex' : 'p-4 sm:p-5'}`}
                             style={{ animationDelay: `${index * 40}ms` }}
                           >
-                            {badge && <div className="mb-2"><Badge type={badge} /></div>}
-                            <div className="flex items-start justify-between gap-3">
-                              <h3 className="font-heading font-semibold text-timon-navy text-[15px] sm:text-base leading-snug">{item.name}</h3>
-                              <div className="flex-shrink-0"><Price value={item.price} /></div>
-                            </div>
-                            {item.description && (
-                              <p className="text-timon-gray text-[13px] sm:text-sm leading-relaxed mt-1.5 line-clamp-2">{item.description}</p>
+                            {/* Image thumbnail */}
+                            {hasImage && (
+                              <div className="w-24 sm:w-28 flex-shrink-0">
+                                <img
+                                  src={item.image_url}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              </div>
                             )}
+                            {/* Content */}
+                            <div className={hasImage ? 'flex-1 p-3 sm:p-4 min-w-0' : ''}>
+                              {badge && <div className="mb-1.5"><Badge type={badge} /></div>}
+                              <div className="flex items-start justify-between gap-2">
+                                <h3 className="font-heading font-semibold text-timon-navy text-[15px] sm:text-base leading-snug">{item.name}</h3>
+                                <div className="flex-shrink-0"><Price value={item.price} /></div>
+                              </div>
+                              {item.description && (
+                                <p className="text-timon-gray text-[13px] sm:text-sm leading-relaxed mt-1 line-clamp-2">{item.description}</p>
+                              )}
+                            </div>
                           </div>
                         )
                       })}
