@@ -158,7 +158,12 @@ export default function AdminLogin() {
           </div>
 
           <p className="text-center text-gray-400 text-xs mt-6">
-            El Timon - Cocteles y Mariscos desde 1995
+            El Timon &middot; Cocteles y Mariscos desde 1995
+          </p>
+          <p className="text-center mt-2">
+            <a href="https://www.ladislaoch.com" target="_blank" rel="noopener noreferrer" className="text-gray-300 text-[10px] hover:text-gray-400 transition-colors">
+              Desarrollado por @ladislaoch
+            </a>
           </p>
         </div>
       </div>

@@ -184,6 +184,9 @@ function MenuItemModal({ item, categories, onSave, onClose, saving }: {
 }
 
 // ── Icons ───────────────────────────────────────────────────────────
+const IconDashboard = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" /></svg>
+)
 const IconCategories = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
 )
@@ -207,11 +210,11 @@ const IconPlus = () => (
 )
 
 // ── Main Dashboard ──────────────────────────────────────────────────
-type Section = 'items' | 'categories'
+type Section = 'dashboard' | 'items' | 'categories'
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const [section, setSection] = useState<Section>('items')
+  const [section, setSection] = useState<Section>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
@@ -329,12 +332,42 @@ export default function AdminDashboard() {
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_active: !i.is_active } : i)))
   }
 
+  // ── Reorder Items ───────────────────────────────────────────────
+  async function moveItem(item: MenuItem, direction: 'up' | 'down') {
+    const categoryItems = items
+      .filter(i => i.category_id === item.category_id)
+      .sort((a, b) => a.sort_order - b.sort_order)
+    const idx = categoryItems.findIndex(i => i.id === item.id)
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= categoryItems.length) return
+    const other = categoryItems[swapIdx]
+    await Promise.all([
+      supabase.from('menu_items').update({ sort_order: other.sort_order }).eq('id', item.id),
+      supabase.from('menu_items').update({ sort_order: item.sort_order }).eq('id', other.id),
+    ])
+    fetchData()
+  }
+
   function logout() {
     localStorage.removeItem('admin_token')
     router.push('/admin')
   }
 
   // Filter items
+  // QR Download
+  async function downloadQR() {
+    try {
+      const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent('https://eltimon-menu.vercel.app')}&bgcolor=FFFFFF&color=1E3A5F`)
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'eltimon-menu-qr.png'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* silent fail */ }
+  }
+
   const filteredItems = filterCategory
     ? items.filter((i) => i.category_id === filterCategory)
     : items
@@ -349,6 +382,7 @@ export default function AdminDashboard() {
 
   // Nav items
   const navItems: { key: Section | 'preview' | 'logout'; label: string; icon: React.ReactNode }[] = [
+    { key: 'dashboard', label: 'Dashboard', icon: <IconDashboard /> },
     { key: 'items', label: 'Platillos', icon: <IconMenu /> },
     { key: 'categories', label: 'Categorias', icon: <IconCategories /> },
     { key: 'preview', label: 'Vista Previa', icon: <IconPreview /> },
@@ -458,6 +492,7 @@ export default function AdminDashboard() {
         {/* Footer */}
         <div className="p-4 border-t border-white/10">
           <p className="text-white/30 text-xs text-center">Cocteles y Mariscos desde 1995</p>
+          <a href="https://www.ladislaoch.com" target="_blank" rel="noopener noreferrer" className="block text-white/15 text-[10px] text-center mt-1 hover:text-white/30 transition-colors">@ladislaoch</a>
         </div>
       </aside>
 
@@ -469,7 +504,7 @@ export default function AdminDashboard() {
             <IconHamburger />
           </button>
           <h2 className="text-lg font-bold text-[var(--timon-dark)]">
-            {section === 'items' ? 'Platillos del Menu' : 'Categorias'}
+            {section === 'dashboard' ? 'Dashboard' : section === 'items' ? 'Platillos del Menu' : 'Categorias'}
           </h2>
         </header>
 
@@ -477,6 +512,64 @@ export default function AdminDashboard() {
           {loadingData ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-[var(--timon-red)] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : section === 'dashboard' ? (
+            /* ── Dashboard Section ──────────────────────────────── */
+            <div className="space-y-6">
+              {/* Metrics cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+                  <p className="text-2xl font-bold text-[var(--timon-dark)]">{items.filter(i => i.is_active).length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Platillos Activos</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+                  <p className="text-2xl font-bold text-gray-400">{items.filter(i => !i.is_active).length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Inactivos</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+                  <p className="text-2xl font-bold text-[var(--timon-dark)]">{categories.length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Categorias</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+                  <p className="text-2xl font-bold text-[var(--timon-dark)]">{items.filter(i => i.badge && i.badge !== '').length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Con Etiqueta</p>
+                </div>
+              </div>
+
+              {/* Quick actions */}
+              <div className="flex flex-wrap gap-3">
+                <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--timon-red)] hover:opacity-90 transition-all cursor-pointer">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  Ver Menu
+                </a>
+                <button onClick={() => { setSection('items'); setItemModal({ open: true, item: null }) }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[var(--timon-dark)] bg-gray-100 hover:bg-gray-200 transition-all cursor-pointer">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  Agregar Platillo
+                </button>
+              </div>
+
+              {/* QR Code Generator */}
+              <div className="bg-white rounded-xl border border-gray-100 p-6 text-center max-w-sm mx-auto">
+                <h3 className="font-bold text-[var(--timon-dark)] mb-3">Codigo QR del Menu</h3>
+                <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4 inline-block">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://eltimon-menu.vercel.app')}&bgcolor=FFFFFF&color=1E3A5F`}
+                    alt="QR Menu El Timon"
+                    width={200}
+                    height={200}
+                    className="mx-auto"
+                    id="qr-image"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mb-4">Imprime este QR y colocalo en las mesas de tu restaurante</p>
+                <button
+                  onClick={downloadQR}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--timon-red)] hover:opacity-90 transition-all cursor-pointer mx-auto"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  Descargar QR (PNG)
+                </button>
+              </div>
             </div>
           ) : section === 'categories' ? (
             /* ── Categories Section ──────────────────────────────── */
@@ -582,6 +675,7 @@ export default function AdminDashboard() {
                           <th className="text-left px-5 py-3 font-semibold text-gray-600 hidden md:table-cell">Categoria</th>
                           <th className="text-right px-5 py-3 font-semibold text-gray-600 w-28">Precio</th>
                           <th className="text-center px-5 py-3 font-semibold text-gray-600 w-24">Estado</th>
+                          <th className="text-center px-5 py-3 font-semibold text-gray-600 w-20">Orden</th>
                           <th className="text-right px-5 py-3 font-semibold text-gray-600 w-32">Acciones</th>
                         </tr>
                       </thead>
@@ -617,6 +711,24 @@ export default function AdminDashboard() {
                               >
                                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${item.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
                               </button>
+                            </td>
+                            <td className="px-5 py-3.5 text-center">
+                              <div className="flex gap-0.5 justify-center">
+                                <button
+                                  onClick={() => moveItem(item, 'up')}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-[var(--timon-dark)] hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title="Subir"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                                </button>
+                                <button
+                                  onClick={() => moveItem(item, 'down')}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-[var(--timon-dark)] hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title="Bajar"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                </button>
+                              </div>
                             </td>
                             <td className="px-5 py-3.5 text-right">
                               <div className="flex gap-1 justify-end">

@@ -17,6 +17,13 @@ export const metadata: Metadata = {
   title: "El Timón — Menú Digital | Cocteles y Mariscos desde 1995",
   description: "Menú digital de El Timón, restaurante de cocteles y mariscos en Monterrey. Ve nuestro menú completo con precios, platillos destacados y ordena por WhatsApp.",
   keywords: "el timon, menu, mariscos, cocteles, monterrey, restaurante, seafood, menu digital",
+  manifest: "/manifest.json",
+  themeColor: "#1E3A5F",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "El Timon",
+  },
   openGraph: {
     title: "El Timón — Menú Digital",
     description: "Cocteles y Mariscos desde 1995. Ve nuestro menú completo y ordena por WhatsApp.",

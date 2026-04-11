@@ -1,0 +1,22 @@
+{
+  "name": "El Timon - Menu Digital",
+  "short_name": "El Timon",
+  "description": "Menu digital de El Timon, cocteles y mariscos desde 1995",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFAF5",
+  "theme_color": "#1E3A5F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
