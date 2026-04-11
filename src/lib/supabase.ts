@@ -21,5 +21,17 @@ export type MenuItem = {
   image_url: string
   is_active: boolean
   sort_order: number
+  badge: string
   category?: Category
 }
+
+export const BADGE_OPTIONS = [
+  '',
+  'Más Pedido',
+  'Chef Recomienda',
+  'Popular',
+  'Especialidad',
+  'Nuevo',
+  'Premium',
+  'Temporada',
+] as const

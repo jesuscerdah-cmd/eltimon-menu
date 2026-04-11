@@ -14,8 +14,27 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "El Timon - Menu Digital | Cocteles y Mariscos desde 1995",
-  description: "Menu digital de El Timon, restaurante de cocteles y mariscos en Monterrey. Platillos unicos, deliciosos y nutritivos desde 1995.",
+  title: "El Timón — Menú Digital | Cocteles y Mariscos desde 1995",
+  description: "Menú digital de El Timón, restaurante de cocteles y mariscos en Monterrey. Ve nuestro menú completo con precios, platillos destacados y ordena por WhatsApp.",
+  keywords: "el timon, menu, mariscos, cocteles, monterrey, restaurante, seafood, menu digital",
+  openGraph: {
+    title: "El Timón — Menú Digital",
+    description: "Cocteles y Mariscos desde 1995. Ve nuestro menú completo y ordena por WhatsApp.",
+    type: "website",
+    locale: "es_MX",
+    siteName: "El Timón",
+    url: "https://eltimon-menu.vercel.app",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "El Timón — Menú Digital",
+    description: "Cocteles y Mariscos desde 1995. Ve nuestro menú completo.",
+  },
+  icons: {
+    icon: [
+      { url: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export default function RootLayout({

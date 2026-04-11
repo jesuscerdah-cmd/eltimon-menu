@@ -11,20 +11,6 @@ const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent
 const PHONE_NUMBER = '+528344373709'
 const MAPS_URL = 'https://maps.google.com/?q=Hidalgo+182+Centro+Monterrey+NL+Mexico'
 
-const RECOMMENDED_ITEMS = new Set([
-  'Mariscada',
-  'Camarones Rellenos',
-  'Tampiqueña Marinera',
-  'Ensalada Timón',
-  'Hamburguesa Timón',
-])
-
-const POPULAR_ITEMS = new Set([
-  'Caldo de Pescado',
-  'Ceviche Chico',
-  'Filete Empanizado',
-])
-
 const CATEGORY_GROUPS: Record<string, string[]> = {
   'Paquetes': ['Súper Paquetes', 'Paquetes Familiares'],
   'Infantil y Combos': ['Timoncitos', 'Minicombos'],
@@ -46,12 +32,6 @@ function slugify(text: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
-}
-
-function getBadge(name: string): 'recomendado' | 'popular' | null {
-  if (RECOMMENDED_ITEMS.has(name)) return 'recomendado'
-  if (POPULAR_ITEMS.has(name)) return 'popular'
-  return null
 }
 
 type DisplayCategory = {
@@ -134,14 +114,12 @@ function PlaceholderThumb({ categoryName }: { categoryName: string }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl border border-timon-navy/5 p-4 sm:p-5">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-1 space-y-2.5">
-          <div className="h-5 bg-timon-navy/8 rounded-md w-3/4 animate-pulse" />
-          <div className="h-3.5 bg-timon-navy/5 rounded w-full animate-pulse" />
-          <div className="h-3.5 bg-timon-navy/5 rounded w-2/3 animate-pulse" />
-        </div>
-        <div className="h-6 bg-timon-navy/8 rounded-md w-20 animate-pulse flex-shrink-0" />
+    <div className="bg-white rounded-xl border border-timon-navy/5 overflow-hidden flex">
+      <div className="w-20 sm:w-24 flex-shrink-0 bg-timon-navy/5 animate-pulse" />
+      <div className="flex-1 p-3 sm:p-4 space-y-2">
+        <div className="h-4 bg-timon-navy/8 rounded w-3/4 animate-pulse" />
+        <div className="h-3 bg-timon-navy/5 rounded w-full animate-pulse" />
+        <div className="h-3 bg-timon-navy/5 rounded w-1/2 animate-pulse" />
       </div>
     </div>
   )
@@ -169,19 +147,42 @@ function LoadingSkeleton() {
 
 // ── Badge Component ─────────────────────────────────────────────────
 
-function Badge({ type }: { type: 'recomendado' | 'popular' }) {
-  if (type === 'recomendado') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-timon-gold/15 text-timon-gold border border-timon-gold/20">
-        <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-        Chef recomienda
-      </span>
+function Badge({ label }: { label: string }) {
+  // Gold style: Chef Recomienda, Especialidad
+  const isGold = label === 'Chef Recomienda' || label === 'Especialidad'
+  // Teal style: Popular, Mas Pedido
+  const isTeal = label === 'Popular' || label === 'Más Pedido'
+  // Coral style: Premium, Nuevo
+  const isCoral = label === 'Premium' || label === 'Nuevo'
+  // Emerald style: Temporada
+  const isEmerald = label === 'Temporada'
+
+  let colorClasses = 'bg-timon-gold/15 text-timon-gold border-timon-gold/20'
+  let icon = (
+    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+  )
+
+  if (isTeal) {
+    colorClasses = 'bg-timon-teal/10 text-timon-teal border-timon-teal/15'
+    icon = (
+      <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" /></svg>
+    )
+  } else if (isCoral) {
+    colorClasses = 'bg-timon-coral/10 text-timon-coral border-timon-coral/15'
+    icon = (
+      <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zm7-10a1 1 0 01.967.744L14.146 7.2 17.5 7.512a1 1 0 01.541 1.753l-2.454 2.11.733 3.413a1 1 0 01-1.491 1.083L12 14.12l-2.829 1.752a1 1 0 01-1.491-1.083l.733-3.413-2.454-2.11a1 1 0 01.541-1.753l3.354-.312 1.179-3.456A1 1 0 0112 2z" clipRule="evenodd" /></svg>
+    )
+  } else if (isEmerald) {
+    colorClasses = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/15'
+    icon = (
+      <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clipRule="evenodd" /></svg>
     )
   }
+
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-timon-teal/10 text-timon-teal border border-timon-teal/15">
-      <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" /></svg>
-      Popular
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border ${colorClasses}`}>
+      {icon}
+      {label}
     </span>
   )
 }
@@ -423,12 +424,12 @@ export default function MenuPage() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {catItems.map((item, index) => {
-                        const badge = getBadge(item.name)
+                        const badge = item.badge
                         const hasImage = item.image_url && item.image_url.length > 0
                         return (
                           <div
                             key={item.id}
-                            className="animate-fade-in bg-white rounded-xl border border-timon-navy/5 hover:border-timon-teal/20 hover:shadow-sm transition-all duration-200 overflow-hidden flex"
+                            className="animate-fade-in bg-white rounded-xl border border-timon-navy/5 hover:border-timon-teal/20 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 overflow-hidden flex"
                             style={{ animationDelay: `${index * 40}ms` }}
                           >
                             {/* Thumbnail: real image or category placeholder */}
@@ -439,6 +440,7 @@ export default function MenuPage() {
                                   alt={item.name}
                                   className="w-full h-full object-cover"
                                   loading="lazy"
+                                  style={{ filter: 'contrast(1.05) saturate(1.1)' }}
                                 />
                               ) : (
                                 <PlaceholderThumb categoryName={cat.name} />
@@ -446,7 +448,7 @@ export default function MenuPage() {
                             </div>
                             {/* Content */}
                             <div className="flex-1 p-3 sm:p-4 min-w-0">
-                              {badge && <div className="mb-1.5"><Badge type={badge} /></div>}
+                              {badge && badge.length > 0 && <div className="mb-1.5"><Badge label={badge} /></div>}
                               <div className="flex items-start justify-between gap-2">
                                 <h3 className="font-heading font-semibold text-timon-navy text-[15px] sm:text-base leading-snug">{item.name}</h3>
                                 <div className="flex-shrink-0"><Price value={item.price} /></div>
@@ -497,8 +499,19 @@ export default function MenuPage() {
               </div>
             </div>
           </div>
+          {/* Social Links */}
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <a href="https://www.instagram.com/eltimon.mx/" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors" aria-label="Instagram">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+            </a>
+            <a href="https://www.facebook.com/eltimon.mx/" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors" aria-label="Facebook">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+            </a>
+          </div>
           <div className="mt-8 pt-6 border-t border-white/10 text-center">
-            <p className="text-white/25 text-xs">Menu digital</p>
+            <a href="https://www.ladislaoch.com" target="_blank" rel="noopener noreferrer" className="text-white/20 text-xs hover:text-white/40 transition-colors">
+              Desarrollado por @ladislaoch
+            </a>
           </div>
         </div>
       </footer>
@@ -508,7 +521,7 @@ export default function MenuPage() {
         href={WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed right-4 bottom-[5.5rem] sm:bottom-6 z-50 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+        className="fixed right-4 bottom-[5.5rem] sm:bottom-6 z-50 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
         aria-label="Ordenar por WhatsApp"
       >
         <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -519,11 +532,11 @@ export default function MenuPage() {
 
       {/* Mobile CTA Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#1E3A5F] flex gap-2 px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:hidden">
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-colors">
+        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:scale-95 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-all">
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.96 11.96 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.387 0-4.596-.798-6.364-2.143l-.444-.333-3.206 1.074 1.074-3.206-.333-.444A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" /></svg>
           Ordenar
         </a>
-        <a href={`tel:${PHONE_NUMBER}`} className="flex-1 flex items-center justify-center gap-2 bg-timon-teal hover:bg-timon-teal-dark text-white font-semibold text-sm rounded-lg min-h-[44px] transition-colors">
+        <a href={`tel:${PHONE_NUMBER}`} className="flex-1 flex items-center justify-center gap-2 bg-timon-teal hover:bg-timon-teal-dark active:scale-95 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-all">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
           Reservar
         </a>

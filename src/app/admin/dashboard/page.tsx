@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase, type Category, type MenuItem } from '@/lib/supabase'
+import { supabase, type Category, type MenuItem, BADGE_OPTIONS } from '@/lib/supabase'
 
 // ── Toast Notification ──────────────────────────────────────────────
 type ToastType = 'success' | 'error'
@@ -94,7 +94,7 @@ function CategoryModal({ category, onSave, onClose, saving }: {
 function MenuItemModal({ item, categories, onSave, onClose, saving }: {
   item: MenuItem | null
   categories: Category[]
-  onSave: (data: { name: string; description: string; price: number | null; category_id: string; image_url: string; is_active: boolean; sort_order: number }) => void
+  onSave: (data: { name: string; description: string; price: number | null; category_id: string; image_url: string; is_active: boolean; sort_order: number; badge: string }) => void
   onClose: () => void
   saving: boolean
 }) {
@@ -103,6 +103,7 @@ function MenuItemModal({ item, categories, onSave, onClose, saving }: {
   const [price, setPrice] = useState(item?.price?.toString() || '')
   const [categoryId, setCategoryId] = useState(item?.category_id || categories[0]?.id || '')
   const [imageUrl, setImageUrl] = useState(item?.image_url || '')
+  const [badge, setBadge] = useState(item?.badge || '')
   const [isActive, setIsActive] = useState(item?.is_active ?? true)
   const [sortOrder, setSortOrder] = useState(item?.sort_order || 0)
 
@@ -114,7 +115,7 @@ function MenuItemModal({ item, categories, onSave, onClose, saving }: {
           <h3 className="text-lg font-bold text-[var(--timon-dark)] mb-5">
             {item ? 'Editar Platillo' : 'Nuevo Platillo'}
           </h3>
-          <form onSubmit={(e) => { e.preventDefault(); onSave({ name, description, price: price ? parseFloat(price) : null, category_id: categoryId, image_url: imageUrl, is_active: isActive, sort_order: sortOrder }) }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); onSave({ name, description, price: price ? parseFloat(price) : null, category_id: categoryId, image_url: imageUrl, badge, is_active: isActive, sort_order: sortOrder }) }} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
               <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[var(--timon-dark)] outline-none focus:border-[var(--timon-red)] focus:ring-2 focus:ring-[var(--timon-red)]/20 transition-all" />
@@ -144,6 +145,18 @@ function MenuItemModal({ item, categories, onSave, onClose, saving }: {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">URL de Imagen</label>
               <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[var(--timon-dark)] outline-none focus:border-[var(--timon-red)] focus:ring-2 focus:ring-[var(--timon-red)]/20 transition-all" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Etiqueta</label>
+              <select
+                value={badge}
+                onChange={(e) => setBadge(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[var(--timon-dark)] outline-none focus:border-[var(--timon-red)] focus:ring-2 focus:ring-[var(--timon-red)]/20 transition-all cursor-pointer"
+              >
+                {BADGE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt || 'Ninguna'}</option>
+                ))}
+              </select>
             </div>
             {/* Active toggle */}
             <div className="flex items-center justify-between py-2">
@@ -286,7 +299,7 @@ export default function AdminDashboard() {
   }
 
   // ── CRUD: Menu Items ────────────────────────────────────────────
-  async function saveItem(data: { name: string; description: string; price: number | null; category_id: string; image_url: string; is_active: boolean; sort_order: number }) {
+  async function saveItem(data: { name: string; description: string; price: number | null; category_id: string; image_url: string; is_active: boolean; sort_order: number; badge: string }) {
     setSaving(true)
     if (itemModal.item) {
       const { error } = await supabase.from('menu_items').update(data).eq('id', itemModal.item.id)
@@ -576,7 +589,14 @@ export default function AdminDashboard() {
                         {filteredItems.map((item) => (
                           <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                             <td className="px-5 py-3.5">
-                              <div className="font-medium text-[var(--timon-dark)]">{item.name}</div>
+                              <div className="font-medium text-[var(--timon-dark)]">
+                                {item.name}
+                                {item.badge && (
+                                  <span className="inline-flex ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--timon-teal)]/10 text-[var(--timon-teal)]">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </div>
                               {item.description && (
                                 <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{item.description}</div>
                               )}
