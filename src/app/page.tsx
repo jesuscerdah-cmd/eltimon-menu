@@ -6,7 +6,7 @@ import { supabase, type Category, type MenuItem } from '@/lib/supabase'
 // ── Constants ──────────────────────────────────────────────────────
 
 const WHATSAPP_NUMBER = '528344373709'
-const WHATSAPP_MESSAGE = 'Hola, me gustaría hacer un pedido desde el menú digital'
+const WHATSAPP_MESSAGE = 'Hola, tengo una pregunta sobre El Timón'
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
 const MAPS_URL = 'https://maps.google.com/?q=Hidalgo+182+Centro+Monterrey+NL+Mexico'
 
@@ -230,6 +230,11 @@ export default function MenuPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  const [cartStep, setCartStep] = useState<'cart' | 'form'>('cart')
+  const [deliveryForm, setDeliveryForm] = useState({
+    name: '', address: '', colonia: '', reference: '', phone: '', notes: ''
+  })
 
   const sectionRefs = useRef(new Map<string, HTMLElement>())
   const navRef = useRef<HTMLDivElement>(null)
@@ -260,6 +265,32 @@ export default function MenuPage() {
   const cartTotal = cart.reduce((sum, c) => sum + (c.item.price || 0) * c.quantity, 0)
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0)
 
+  // ── Build WhatsApp URL with delivery form ─────────────────────
+  function buildWhatsAppURL(): string {
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    const itemsList = cart.map(c => `  ${c.quantity}x ${c.item.name} — $${(c.item.price || 0) * c.quantity}`).join('\n')
+    const msg = [
+      '🍽️ *Pedido a domicilio — El Timón*',
+      '',
+      `👤 *Cliente:* ${deliveryForm.name}`,
+      `📍 *Dirección:* ${deliveryForm.address}`,
+      `🏘️ *Colonia:* ${deliveryForm.colonia}`,
+      deliveryForm.reference ? `📌 *Referencia:* ${deliveryForm.reference}` : '',
+      `📱 *Teléfono:* ${deliveryForm.phone}`,
+      '',
+      '📋 *Pedido:*',
+      itemsList,
+      '',
+      `💰 *Total: $${cartTotal}*`,
+      deliveryForm.notes ? `\n📝 *Notas:* ${deliveryForm.notes}` : '',
+      '',
+      `🕐 *Hora:* ${timeStr}`,
+      `📍 *Sucursal:* Centro — Hidalgo #182`,
+    ].filter(Boolean).join('\n')
+    return `https://wa.me/528183443709?text=${encodeURIComponent(msg)}`
+  }
+
   // ── Fetch data ──────────────────────────────────────────────────
   useEffect(() => {
     async function fetchData() {
@@ -269,6 +300,10 @@ export default function MenuPage() {
       ])
       setCategories(catRes.data || [])
       setItems(itemRes.data || [])
+
+      const settingsRes = await supabase.from('settings').select('*').eq('key', 'delivery_enabled').single()
+      if (settingsRes.data?.value === 'true') setDeliveryEnabled(true)
+
       setLoading(false)
     }
     fetchData()
@@ -401,6 +436,12 @@ export default function MenuPage() {
       if (dc.catIds.includes(item.category_id)) return dc.name
     }
     return ''
+  }
+
+  // ── Close cart helper ──────────────────────────────────────────
+  function closeCart() {
+    setCartOpen(false)
+    setCartStep('cart')
   }
 
   // ── Render ──────────────────────────────────────────────────────
@@ -542,12 +583,14 @@ export default function MenuPage() {
                       {item.description && (
                         <p className="text-timon-gray text-[13px] sm:text-sm leading-relaxed mt-1 line-clamp-2">{item.description}</p>
                       )}
-                      {/* Add to cart button */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); addToCart(item) }}
-                        className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-timon-teal text-white flex items-center justify-center text-lg font-bold hover:bg-timon-teal-dark active:scale-90 transition-all cursor-pointer shadow-sm"
-                        aria-label={`Agregar ${item.name}`}
-                      >+</button>
+                      {/* Add to cart button — only when delivery enabled */}
+                      {deliveryEnabled && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); addToCart(item) }}
+                          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-timon-teal text-white flex items-center justify-center text-lg font-bold hover:bg-timon-teal-dark active:scale-90 transition-all cursor-pointer shadow-sm"
+                          aria-label={`Agregar ${item.name}`}
+                        >+</button>
+                      )}
                     </div>
                   </div>
                 )
@@ -614,12 +657,14 @@ export default function MenuPage() {
                               {item.description && (
                                 <p className="text-timon-gray text-[13px] sm:text-sm leading-relaxed mt-1 line-clamp-2">{item.description}</p>
                               )}
-                              {/* Add to cart button */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); addToCart(item) }}
-                                className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-timon-teal text-white flex items-center justify-center text-lg font-bold hover:bg-timon-teal-dark active:scale-90 transition-all cursor-pointer shadow-sm"
-                                aria-label={`Agregar ${item.name}`}
-                              >+</button>
+                              {/* Add to cart button — only when delivery enabled */}
+                              {deliveryEnabled && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); addToCart(item) }}
+                                  className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-timon-teal text-white flex items-center justify-center text-lg font-bold hover:bg-timon-teal-dark active:scale-90 transition-all cursor-pointer shadow-sm"
+                                  aria-label={`Agregar ${item.name}`}
+                                >+</button>
+                              )}
                             </div>
                           </div>
                         )
@@ -679,11 +724,11 @@ export default function MenuPage() {
         </div>
       </footer>
 
-      {/* Cart Floating Badge */}
-      {cartCount > 0 && (
+      {/* Cart Floating Badge — only when delivery enabled */}
+      {deliveryEnabled && cartCount > 0 && (
         <button
           onClick={() => setCartOpen(true)}
-          className="fixed right-4 bottom-[9rem] sm:bottom-[5rem] z-50 w-14 h-14 rounded-full bg-timon-navy text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+          className="fixed right-4 bottom-36 sm:bottom-[5.5rem] z-50 w-14 h-14 rounded-full bg-timon-navy text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform cursor-pointer"
           aria-label="Ver mi pedido"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
@@ -691,73 +736,146 @@ export default function MenuPage() {
         </button>
       )}
 
-      {/* WhatsApp Float */}
-      <a
-        href={WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed right-4 bottom-[4.5rem] sm:bottom-6 z-50 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
-        aria-label="Ordenar por WhatsApp"
-      >
-        <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.96 11.96 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.387 0-4.596-.798-6.364-2.143l-.444-.333-3.206 1.074 1.074-3.206-.333-.444A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
-        </svg>
-      </a>
-
-      {/* Mobile CTA Bar — Single full-width Ordenar button */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#1E3A5F] px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:hidden">
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 active:scale-95 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-all">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.96 11.96 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.387 0-4.596-.798-6.364-2.143l-.444-.333-3.206 1.074 1.074-3.206-.333-.444A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" /></svg>
-          Ordenar
+      {/* WhatsApp Float — hidden when cart drawer is open */}
+      {!cartOpen && (
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed right-4 bottom-20 sm:bottom-6 z-50 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
+          aria-label="Preguntar por WhatsApp"
+        >
+          <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.96 11.96 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.387 0-4.596-.798-6.364-2.143l-.444-.333-3.206 1.074 1.074-3.206-.333-.444A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
+          </svg>
         </a>
+      )}
+
+      {/* Mobile CTA Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#1E3A5F] px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:hidden">
+        {deliveryEnabled && cartCount > 0 ? (
+          <button
+            onClick={() => setCartOpen(true)}
+            className="flex items-center justify-center gap-2 w-full bg-timon-teal hover:bg-timon-teal-dark active:scale-95 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-all cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
+            Ver mi pedido ({cartCount})
+          </button>
+        ) : deliveryEnabled ? (
+          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 active:scale-95 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-all">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.96 11.96 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.387 0-4.596-.798-6.364-2.143l-.444-.333-3.206 1.074 1.074-3.206-.333-.444A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" /></svg>
+            Ordenar por WhatsApp
+          </a>
+        ) : (
+          <a href="tel:+528183443709" className="flex items-center justify-center gap-2 w-full bg-timon-teal hover:bg-timon-teal-dark active:scale-95 text-white font-semibold text-sm rounded-lg min-h-[44px] transition-all">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            Llamar
+          </a>
+        )}
       </div>
 
-      {/* Cart Panel (slide-up drawer) */}
-      {cartOpen && (
+      {/* Cart Panel (slide-up drawer) — only when delivery enabled */}
+      {deliveryEnabled && cartOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setCartOpen(false)} />
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={closeCart} />
           <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-timon-navy/5">
               <h3 className="font-heading font-bold text-timon-navy text-lg">Mi Pedido</h3>
-              <button onClick={() => setCartOpen(false)} className="text-timon-gray hover:text-timon-navy cursor-pointer">
+              <button onClick={closeCart} className="text-timon-gray hover:text-timon-navy cursor-pointer">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {cart.map(({ item, quantity }) => (
-                <div key={item.id} className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-timon-navy text-sm truncate">{item.name}</p>
-                    <p className="text-timon-coral text-sm font-semibold">${item.price ? (item.price * quantity) : 0}</p>
+
+            {cartStep === 'cart' ? (
+              <>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {cart.map(({ item, quantity }) => (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-timon-navy text-sm truncate">{item.name}</p>
+                        <p className="text-timon-coral text-sm font-semibold">${item.price ? (item.price * quantity) : 0}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 rounded-full border border-timon-navy/10 flex items-center justify-center text-timon-navy hover:bg-timon-navy/5 cursor-pointer">&minus;</button>
+                        <span className="text-sm font-semibold text-timon-navy w-5 text-center">{quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 rounded-full border border-timon-navy/10 flex items-center justify-center text-timon-navy hover:bg-timon-navy/5 cursor-pointer">+</button>
+                        <button onClick={() => removeFromCart(item.id)} className="ml-1 text-timon-gray/40 hover:text-red-500 cursor-pointer">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 border-t border-timon-navy/5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-heading font-bold text-timon-navy text-lg">Total</span>
+                    <span className="font-heading font-bold text-timon-coral text-xl">${cartTotal}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 rounded-full border border-timon-navy/10 flex items-center justify-center text-timon-navy hover:bg-timon-navy/5 cursor-pointer">&minus;</button>
-                    <span className="text-sm font-semibold text-timon-navy w-5 text-center">{quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 rounded-full border border-timon-navy/10 flex items-center justify-center text-timon-navy hover:bg-timon-navy/5 cursor-pointer">+</button>
-                    <button onClick={() => removeFromCart(item.id)} className="ml-1 text-timon-gray/40 hover:text-red-500 cursor-pointer">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+                  <button
+                    onClick={() => setCartStep('form')}
+                    className="block w-full py-3.5 bg-timon-teal hover:bg-timon-teal-dark active:scale-[0.98] text-white font-semibold text-center rounded-xl transition-all cursor-pointer"
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <button onClick={() => setCartStep('cart')} className="flex items-center gap-1 text-sm text-timon-teal hover:underline cursor-pointer mb-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    Volver al pedido
+                  </button>
+                  <h4 className="font-heading font-semibold text-timon-navy">Datos de entrega</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-timon-gray mb-1">Nombre *</label>
+                      <input value={deliveryForm.name} onChange={e => setDeliveryForm(f => ({...f, name: e.target.value}))} required className="w-full px-3 py-2.5 rounded-lg border border-timon-navy/10 bg-white text-sm text-timon-navy outline-none focus:border-timon-teal focus:ring-1 focus:ring-timon-teal/20" placeholder="Tu nombre" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-timon-gray mb-1">Direccion completa *</label>
+                      <input value={deliveryForm.address} onChange={e => setDeliveryForm(f => ({...f, address: e.target.value}))} required className="w-full px-3 py-2.5 rounded-lg border border-timon-navy/10 bg-white text-sm text-timon-navy outline-none focus:border-timon-teal focus:ring-1 focus:ring-timon-teal/20" placeholder="Calle y numero" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-timon-gray mb-1">Colonia *</label>
+                      <input value={deliveryForm.colonia} onChange={e => setDeliveryForm(f => ({...f, colonia: e.target.value}))} required className="w-full px-3 py-2.5 rounded-lg border border-timon-navy/10 bg-white text-sm text-timon-navy outline-none focus:border-timon-teal focus:ring-1 focus:ring-timon-teal/20" placeholder="Colonia" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-timon-gray mb-1">Referencia</label>
+                      <input value={deliveryForm.reference} onChange={e => setDeliveryForm(f => ({...f, reference: e.target.value}))} className="w-full px-3 py-2.5 rounded-lg border border-timon-navy/10 bg-white text-sm text-timon-navy outline-none focus:border-timon-teal focus:ring-1 focus:ring-timon-teal/20" placeholder="Entre calles, color de casa, etc." />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-timon-gray mb-1">Telefono *</label>
+                      <input value={deliveryForm.phone} onChange={e => setDeliveryForm(f => ({...f, phone: e.target.value}))} required type="tel" className="w-full px-3 py-2.5 rounded-lg border border-timon-navy/10 bg-white text-sm text-timon-navy outline-none focus:border-timon-teal focus:ring-1 focus:ring-timon-teal/20" placeholder="81 1234 5678" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-timon-gray mb-1">Notas del pedido</label>
+                      <textarea value={deliveryForm.notes} onChange={e => setDeliveryForm(f => ({...f, notes: e.target.value}))} rows={2} className="w-full px-3 py-2.5 rounded-lg border border-timon-navy/10 bg-white text-sm text-timon-navy outline-none focus:border-timon-teal focus:ring-1 focus:ring-timon-teal/20 resize-none" placeholder="Sin cebolla, extra salsa, etc." />
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="p-4 border-t border-timon-navy/5 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="font-heading font-bold text-timon-navy text-lg">Total</span>
-                <span className="font-heading font-bold text-timon-coral text-xl">${cartTotal}</span>
-              </div>
-              <a
-                href={`https://wa.me/528183443709?text=${encodeURIComponent(
-                  `\u{1F37D}\u{FE0F} *Nuevo pedido \u{2014} El Tim\u{00F3}n*\n\n${cart.map(c => `${c.quantity}x ${c.item.name} \u{2014} $${(c.item.price || 0) * c.quantity}`).join('\n')}\n\n\u{1F4CB} *Total: $${cartTotal}*\n\n\u{1F4CD} Sucursal Centro`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full py-3.5 bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white font-semibold text-center rounded-xl transition-all"
-              >
-                Enviar pedido por WhatsApp
-              </a>
-            </div>
+                <div className="p-4 border-t border-timon-navy/5 space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-timon-gray">{cartCount} platillos</span>
+                    <span className="font-heading font-bold text-timon-coral text-lg">${cartTotal}</span>
+                  </div>
+                  {(!deliveryForm.name || !deliveryForm.address || !deliveryForm.colonia || !deliveryForm.phone) ? (
+                    <p className="text-xs text-timon-coral text-center">Completa los campos obligatorios (*)</p>
+                  ) : (
+                    <a
+                      href={buildWhatsAppURL()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => { setCart([]); setCartOpen(false); setCartStep('cart'); setDeliveryForm({ name: '', address: '', colonia: '', reference: '', phone: '', notes: '' }) }}
+                      className="block w-full py-3.5 bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white font-semibold text-center rounded-xl transition-all"
+                    >
+                      Enviar pedido por WhatsApp
+                    </a>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

@@ -229,6 +229,7 @@ export default function AdminDashboard() {
   // Modals
   const [categoryModal, setCategoryModal] = useState<{ open: boolean; category: Category | null }>({ open: false, category: null })
   const [itemModal, setItemModal] = useState<{ open: boolean; item: MenuItem | null }>({ open: false, item: null })
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'category' | 'item'; id: string; name: string } | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -269,6 +270,9 @@ export default function AdminDashboard() {
     if (itemRes.data) setItems(itemRes.data)
     if (catRes.error) showToast('Error cargando categorias', 'error')
     if (itemRes.error) showToast('Error cargando platillos', 'error')
+    // Fetch delivery setting
+    const settingsRes = await supabase.from('settings').select('*').eq('key', 'delivery_enabled').single()
+    if (settingsRes.data) setDeliveryEnabled(settingsRes.data.value === 'true')
     setLoadingData(false)
   }, [showToast])
 
@@ -545,6 +549,25 @@ export default function AdminDashboard() {
                 <button onClick={() => { setSection('items'); setItemModal({ open: true, item: null }) }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[var(--timon-dark)] bg-gray-100 hover:bg-gray-200 transition-all cursor-pointer">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                   Agregar Platillo
+                </button>
+              </div>
+
+              {/* Delivery Toggle */}
+              <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-[var(--timon-dark)] text-sm">Pedidos a domicilio</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{deliveryEnabled ? 'Los clientes pueden armar pedidos y enviarlos por WhatsApp' : 'El menu es solo de consulta, sin carrito ni pedidos'}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newValue = !deliveryEnabled
+                    setDeliveryEnabled(newValue)
+                    await supabase.from('settings').update({ value: newValue ? 'true' : 'false', updated_at: new Date().toISOString() }).eq('key', 'delivery_enabled')
+                    showToast(newValue ? 'Pedidos a domicilio activados' : 'Pedidos a domicilio desactivados', 'success')
+                  }}
+                  className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer flex-shrink-0 ${deliveryEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${deliveryEnabled ? 'translate-x-5' : ''}`} />
                 </button>
               </div>
 
